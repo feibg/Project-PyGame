@@ -11,6 +11,7 @@ class Game:
         pygame.display.set_caption(WINDOW_CAPTION)
         self.running = True
         self.fullscreen = False
+        self.zoom = 2
         self.clock = pygame.time.Clock()
         self.game_started = False
         self.game_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
@@ -50,11 +51,7 @@ class Game:
 
         scaled_surface = pygame.transform.scale(self.game_surface, (new_width, new_height))
 
-        x_offset = (target_width - new_width) // 2
-        y_offset = (target_height - new_height) // 2
-
-        self.screen.fill((0, 0, 0))
-        self.screen.blit(scaled_surface, (x_offset, y_offset))
+        return ((target_width - new_width) // 2, (target_height - new_height) // 2)
 
     def toggle_windowed_fullscreen(self):
         self.fullscreen = not self.fullscreen
@@ -95,16 +92,28 @@ class Game:
                         self.toggle_windowed_fullscreen()   
 
             self.all_sprites.update(dt)
+
             self.game_surface.fill((50, 50, 50))
-            self.screen.blit(self.game_surface, (0, 0))
             self.all_sprites.draw(self.player.rect.center)
 
+            
+
+            self.screen.fill((50, 50, 50))
             if self.fullscreen:
-                self.scale_to_fit()
+                scaled_width = int(self.display_info.current_w * self.zoom)
+                scaled_height = int(self.display_info.current_h * self.zoom)
+                scaled_surface = pygame.transform.scale(self.game_surface, (scaled_width, scaled_height))
+                offset = ((self.display_info.current_w - scaled_width) // 2, (self.display_info.current_h - scaled_height) // 2)
+                offset1 = self.scale_to_fit()
+                offset2 = ((self.display_info.current_w - scaled_width) // 2, (self.display_info.current_h - scaled_height) // 2)
+                self.screen.blit(scaled_surface, offset + offset1 + offset2)
 
             else:
-                self.screen.fill((50, 50, 50))
-                self.screen.blit(self.game_surface, (0, 0))
+                scaled_width = int(WINDOW_WIDTH * self.zoom)
+                scaled_height = int(WINDOW_HEIGHT * self.zoom)
+                scaled_surface = pygame.transform.scale(self.game_surface, (scaled_width, scaled_height))
+                offset = ((WINDOW_WIDTH - scaled_width) // 2, (WINDOW_HEIGHT - scaled_height) // 2)
+                self.screen.blit(scaled_surface, offset)
 
             pygame.display.update()
 
