@@ -12,7 +12,7 @@ class AnimatedSptrite(Sprite):
     def __init__(self, frames, pos,  groups):
         self.frame_index = 0
         self.frames = frames
-        self.animation_speed = 10
+        self.animation_speed = 2
         super().__init__(pos, self.frames[self.frame_index], groups)
 
     def animate(self, dt):
@@ -23,22 +23,41 @@ class Player(AnimatedSptrite):
 
     def __init__(self, frames, pos, groups):
         super().__init__(frames, pos, groups)
-        self.speed = 500
+        self.speed = 50
         self.direction = pygame.Vector2()
+        self.state = 'down'
+
+    def input(self):
+        keys = pygame.key.get_pressed()         
+        
+        self.direction.x = int(keys[pygame.K_RIGHT]) - int(keys[pygame.K_LEFT])
+        self.direction.y = int(keys[pygame.K_DOWN]) - int(keys[pygame.K_UP])
 
     def move(self, dt):
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            self.rect.x += self.speed * dt
-        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            self.rect.x -= self.speed * dt
+        self.rect.x += self.direction.x * self.speed * dt
+
+        self.rect.y += self.direction.y * self.speed * dt
+
+    def rotate(self):
+        if self.state == 'right':
+            self.image = pygame.transform.rotozoom(self.image, -90, 1)
+        if self.state == 'left':
+            self.image = pygame.transform.rotozoom(self.image, 90, 1)
+        if self.state == 'down':
+            self.image = pygame.transform.rotozoom(self.image, 180, 1)
 
     def animate(self, dt):
-        if self.direction.x:
-            self.frame_index += self.animation_speed * dt
-            self.flip = self.direction.x < 0
-        else:
-            self.frame_index = 0
+        if self.direction.x != 0:
+            self.state = 'right' if self.direction.x > 0 else 'left'
+
+        if self.direction.y != 0:
+            self.state = 'down' if self.direction.y > 0 else 'up'
+
+        self.frame_index = self.frame_index + 5 * self.animation_speed * dt if self.direction else 0
+        self.image = self.frames[int(self.frame_index) % len(self.frames)]
+        self.rotate()
 
     def update(self, dt):
+        self.input()
         self.move(dt)
+        self.animate(dt)
