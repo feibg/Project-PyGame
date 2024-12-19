@@ -1,2 +1,2 @@
-pygame-ce==2.5.2
-pygetwindow==0.0.9
+pygame-ce
+pygetwindow
