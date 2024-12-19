@@ -1,5 +1,6 @@
 import pygame
 from os.path import join
+from pytmx.util_pygame import load_pygame
 
 pygame.init()
 
