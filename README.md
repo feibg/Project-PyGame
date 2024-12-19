@@ -5,3 +5,6 @@ This is a project i have been thinking of doing for a long time since i usually 
 
 ## Description
 This project is **STILL BEING MADE** so expect a lot of bugs and missing features.
+
+## Credits
+This game is developed by me alone but i would like to also credit https://www.youtube.com/@ClearCode because a lot of code is taken from his channel.

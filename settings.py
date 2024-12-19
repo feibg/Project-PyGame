@@ -1,4 +1,5 @@
 import pygame
+from os import walk
 from os.path import join
 from pytmx.util_pygame import load_pygame
 

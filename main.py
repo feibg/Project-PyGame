@@ -1,4 +1,5 @@
 from settings import *
+from support import *
 from sprites import *
 from groups import *
 import pygetwindow as gw
@@ -12,15 +13,15 @@ class Game:
         self.fullscreen = False
         self.clock = pygame.time.Clock()
         self.game_started = False
-
         self.game_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
 
         self.all_sprites = AllSprites(self.game_surface)
 
-        self.player_surf = pygame.Surface((50, 50))
-        self.player = Player((WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2), self.player_surf, self.all_sprites)
-
+        self.load_assets()
         self.setup()
+
+    def load_assets(self):
+        self.player_frames = import_folder(join('data', 'graphics', 'player'))
 
     def setup(self):
         tmx_map = load_pygame(join('data', 'tmx', 'Test.tmx'))
@@ -29,6 +30,12 @@ class Game:
 
         for x, y, image in tmx_map.get_layer_by_name('Ground').tiles():
             Sprite((x * tmx_map.tilewidth, y * tmx_map.tileheight), image, self.all_sprites)
+        for x, y, image in tmx_map.get_layer_by_name('Plants and rocks').tiles():
+            Sprite((x * tmx_map.tilewidth, y * tmx_map.tileheight), image, self.all_sprites)
+        
+        for obj in tmx_map.get_layer_by_name('Entities'):
+            if obj.name == 'player':
+                self.player = Player(self.player_frames, (obj.x, obj.y), self.all_sprites)
         
     def scale_to_fit(self):
         target_width, target_height = self.display_info.current_w, self.display_info.current_h
