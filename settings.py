@@ -7,5 +7,5 @@ pygame.init()
 
 WINDOW_WIDTH, WINDOW_HEIGHT = 640, 360
 TILE_SIZE = 32
-WINDOW_CAPTION = "feibg's Game"
+WINDOW_CAPTION = "Game"
 FPS = 60
