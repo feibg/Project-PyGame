@@ -6,6 +6,12 @@ class Sprite(pygame.sprite.Sprite):
         super().__init__(groups)
         self.image = surf
         self.rect = self.image.get_frect(topleft=pos)
+        self.hitbox = self.rect.copy()
+
+class CollidableSprite(Sprite):
+
+    def __init__(self, pos, surf, groups):
+        super().__init__(pos, surf, groups)
 
 class AnimatedSptrite(Sprite):
 
@@ -21,11 +27,13 @@ class AnimatedSptrite(Sprite):
 
 class Player(AnimatedSptrite):
 
-    def __init__(self, frames, pos, groups):
+    def __init__(self, frames, pos, groups, collision_sprites):
         super().__init__(frames, pos, groups)
         self.speed = 50
         self.direction = pygame.Vector2()
         self.state = 'down'
+        self.collision_sprites = collision_sprites
+        self.hitbox = self.rect.copy()
 
     def input(self):
         keys = pygame.key.get_pressed()         
@@ -33,11 +41,32 @@ class Player(AnimatedSptrite):
         self.direction.x = int(keys[pygame.K_RIGHT]) - int(keys[pygame.K_LEFT])
         self.direction.y = int(keys[pygame.K_DOWN]) - int(keys[pygame.K_UP])
 
+        self.direction = self.direction.normalize() if self.direction else self.direction
+
     def move(self, dt):
-        self.rect.x += self.direction.x * self.speed * dt
+        self.rect.centerx += self.direction.x * self.speed * dt
+        self.hitbox.centerx = self.rect.centerx
+        self.collision('horizontal')
+        self.rect.centery += self.direction.y * self.speed * dt
+        self.hitbox.centery = self.rect.centery
+        self.collision('vertical')
 
-        self.rect.y += self.direction.y * self.speed * dt
-
+    def collision(self, axis):
+        for sprite in self.collision_sprites:
+            if sprite.hitbox.colliderect(self.hitbox):
+                if axis == 'horizontal':
+                    if self.direction.x > 0:
+                        self.hitbox.right = sprite.hitbox.left
+                    if self.direction.x < 0:
+                        self.hitbox.left = sprite.hitbox.right
+                    self.rect.centerx = self.hitbox.centerx
+                else:
+                    if self.direction.y > 0:
+                        self.hitbox.bottom = sprite.hitbox.top
+                    if self.direction.y < 0:
+                        self.hitbox.top = sprite.hitbox.bottom
+                    self.rect.centery = self.hitbox.centery
+        
     def rotate(self):
         if self.state == 'right':
             self.image = pygame.transform.rotozoom(self.image, -90, 1)

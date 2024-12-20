@@ -20,15 +20,14 @@ class Game:
         self.scroll_speed = 5
         self.clock = pygame.time.Clock()
         self.all_sprites = AllSprites(self.game_surface)
+        self.collision_sprites = pygame.sprite.Group()
         self.button_offset = 75
 
         self.load_assets()
         self.setup()
 
     def load_assets(self):
-        self.background_images = []
-        for i in range(1, 5):
-            self.background_images.append(pygame.image.load(join('data', 'graphics', 'menu', f'background{i}.png')).convert_alpha())
+        self.background_image = pygame.transform.scale(pygame.image.load(join('data', 'graphics', 'menu', 'background.png')).convert_alpha(), (WINDOW_WIDTH, WINDOW_HEIGHT))
         self.unscaled_button_background = pygame.image.load(join('data', 'graphics', 'menu', 'button.png'))
         self.player_frames = import_folder(join('data', 'graphics', 'player'))
         self.lato = pygame.font.Font(join('data', 'graphics', 'font', 'Lato.ttf'), 50)
@@ -41,11 +40,11 @@ class Game:
         for x, y, image in tmx_map.get_layer_by_name('Ground').tiles():
             Sprite((x * tmx_map.tilewidth, y * tmx_map.tileheight), image, self.all_sprites)
         for x, y, image in tmx_map.get_layer_by_name('Plants and rocks').tiles():
-            Sprite((x * tmx_map.tilewidth, y * tmx_map.tileheight), image, self.all_sprites)
+            CollidableSprite((x * tmx_map.tilewidth, y * tmx_map.tileheight), image, (self.all_sprites, self.collision_sprites))
         
         for obj in tmx_map.get_layer_by_name('Entities'):
             if obj.name == 'player':
-                self.player = Player(self.player_frames, (obj.x, obj.y), self.all_sprites)
+                self.player = Player(self.player_frames, (obj.x, obj.y), self.all_sprites, self.collision_sprites)
 
         self.scale = min(self.fullscreen_w / WINDOW_WIDTH, self.fullscreen_h / WINDOW_HEIGHT)
         self.scaled_w = int(WINDOW_WIDTH * self.scale)
@@ -69,7 +68,8 @@ class Game:
                 mouse_pos_y = unscaled_mouse_pos[1] / self.scale
 
             self.screen.fill((50, 50, 50))
-            
+            self.game_surface.blit(self.background_image, (0, 0))
+
             for button in [self.play_button, self.options_button, self.quit_button]:
                 button.change_color((mouse_pos_x, mouse_pos_y))
                 button.update(self.game_surface)
@@ -79,7 +79,6 @@ class Game:
                 self.screen.blit(scaled_surface, (0, 0))
             else:
                 self.screen.blit(self.game_surface, (0, 0))
-
 
             self.scroll += 0.5 
 
