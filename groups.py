@@ -1,9 +1,9 @@
 from settings import *
 
 class AllSprites(pygame.sprite.Group):
-    def __init__(self):
+    def __init__(self, surface):
         super().__init__()
-        self.display_surface = pygame.display.get_surface()
+        self.display_surface = surface
         self.offset = pygame.Vector2()
 
     def draw(self, target_pos):

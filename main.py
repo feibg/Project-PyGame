@@ -7,17 +7,20 @@ import os
 
 class Game:
     def __init__(self):
-        self.display_info = pygame.display.Info()
-        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        self.fullscreen_info = pygame.display.Info()
+        self.fullscreen_w, self.fullscreen_h = self.fullscreen_info.current_w, self.fullscreen_info.current_h
+        self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         pygame.display.set_caption(WINDOW_CAPTION)
+        self.current_w, self.current_h = WINDOW_WIDTH, WINDOW_HEIGHT
         self.running = True
         self.game_running = False
-        self.fullscreen = True
+        self.fullscreen = False
+        self.game_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
         self.scroll = 0
         self.scroll_speed = 5
         self.clock = pygame.time.Clock()
-
-        self.all_sprites = AllSprites()
+        self.all_sprites = AllSprites(self.game_surface)
+        self.button_offset = 75
 
         self.load_assets()
         self.setup()
@@ -26,7 +29,7 @@ class Game:
         self.background_images = []
         for i in range(1, 5):
             self.background_images.append(pygame.image.load(join('data', 'graphics', 'menu', f'background{i}.png')).convert_alpha())
-        self.button_background = pygame.image.load(join('data', 'graphics', 'menu', 'button.png'))
+        self.unscaled_button_background = pygame.image.load(join('data', 'graphics', 'menu', 'button.png'))
         self.player_frames = import_folder(join('data', 'graphics', 'player'))
         self.lato = pygame.font.Font(join('data', 'graphics', 'font', 'Lato.ttf'), 50)
 
@@ -44,50 +47,39 @@ class Game:
             if obj.name == 'player':
                 self.player = Player(self.player_frames, (obj.x, obj.y), self.all_sprites)
 
-    def toggle_fullscreen(self):
-        if not self.fullscreen:
-            self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-        else:
-            self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-        self.fullscreen = not self.fullscreen
+        self.scale = min(self.fullscreen_w / WINDOW_WIDTH, self.fullscreen_h / WINDOW_HEIGHT)
+        self.scaled_w = int(WINDOW_WIDTH * self.scale)
+        self.scaled_h = int(WINDOW_HEIGHT * self.scale)
 
-    def draw_background(self, current_w):
-        for x in range(5):
-            self.scroll_speed = 1
-            for i in self.background_images:
-                self.screen.blit(i, (x * current_w - self.scroll * self.scroll_speed, 0))
-                self.scroll_speed += 1
+        self.button_background = pygame.transform.scale(self.unscaled_button_background, (200, 70))
+
+        self.play_button = Button(self.button_background, (WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 - self.button_offset + 50), 'Play', self.lato, (200, 200, 200), (255, 255, 255))
+        self.options_button = Button(self.button_background, (WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 + 50), 'Options', self.lato, (200, 200, 200), (255, 255, 255))
+        self.quit_button = Button(self.button_background, (WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 + self.button_offset + 50), 'Quit', self.lato, (200, 200, 200), (255, 255, 255))
 
     def menu(self):
         while self.running:
+
+            unscaled_mouse_pos = pygame.mouse.get_pos()
+            if not self.fullscreen:
+                mouse_pos_x = unscaled_mouse_pos[0]
+                mouse_pos_y = unscaled_mouse_pos[1]
+            else:
+                mouse_pos_x = unscaled_mouse_pos[0] / self.scale
+                mouse_pos_y = unscaled_mouse_pos[1] / self.scale
+
+            self.screen.fill((50, 50, 50))
             
-            current_w, current_h = pygame.display.get_surface().get_size()
-
-            self.button_background = pygame.transform.scale(self.button_background, (300, 80))
-
-            menu_mouse_pos = pygame.mouse.get_pos()
+            for button in [self.play_button, self.options_button, self.quit_button]:
+                button.change_color((mouse_pos_x, mouse_pos_y))
+                button.update(self.game_surface)
 
             if self.fullscreen:
-                for i in range(0, 4):
-                    self.background_images[i] = pygame.transform.scale(self.background_images[i], (self.display_info.current_w, self.display_info.current_h))
-            elif not self.fullscreen:
-                for i in range(0, 4):
-                    self.background_images[i] = pygame.transform.scale(self.background_images[i], (WINDOW_WIDTH, WINDOW_HEIGHT))
-                
-            menu_text = self.lato.render('Game', True, (255, 255, 255))
-            menu_rect = menu_text.get_rect(center=(current_w / 2, current_h / 2 - 200))
+                scaled_surface = pygame.transform.scale(self.game_surface, (self.scaled_w, self.scaled_h))
+                self.screen.blit(scaled_surface, (0, 0))
+            else:
+                self.screen.blit(self.game_surface, (0, 0))
 
-            play_button = Button(self.button_background, (current_w / 2, current_h / 2 - 100), 'Play', self.lato, (200, 200, 200), (255, 255, 255))
-            options_button = Button(self.button_background, (current_w / 2, current_h / 2), 'Options', self.lato, (200, 200, 200), (255, 255, 255))
-            quit_button = Button(self.button_background, (current_w / 2, current_h / 2 + 100), 'Quit', self.lato, (200, 200, 200), (255, 255, 255))
-
-            self.draw_background(current_w)
-
-            self.screen.blit(menu_text, menu_rect)
-
-            for button in [play_button, options_button, quit_button]:
-                button.change_color(menu_mouse_pos)
-                button.update(self.screen)
 
             self.scroll += 0.5 
 
@@ -98,14 +90,19 @@ class Game:
                     if event.key == pygame.K_ESCAPE:
                         self.running = False
                     if event.key == pygame.K_F11:
-                        self.toggle_fullscreen()
+                        self.fullscreen = not self.fullscreen
+                        if self.fullscreen:
+                            self.screen = pygame.display.set_mode((self.fullscreen_w, self.fullscreen_h), pygame.FULLSCREEN)
+                        else:
+                            self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+                        self.current_w, self.current_h = pygame.display.get_surface().get_size()
                 elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if play_button.input(menu_mouse_pos):
+                    if self.play_button.input((mouse_pos_x, mouse_pos_y)):
                         self.game_running = True
                         self.run()
-                    if options_button.input(menu_mouse_pos):
+                    if self.options_button.input((mouse_pos_x, mouse_pos_y)):
                         pass
-                    if quit_button.input(menu_mouse_pos):
+                    if self.quit_button.input((mouse_pos_x, mouse_pos_y)):
                         self.running = False
 
 
@@ -123,13 +120,24 @@ class Game:
                     self.running = False
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_F11:
-                        self.toggle_fullscreen()   
+                        self.fullscreen = not self.fullscreen
+                        if self.fullscreen:
+                            self.screen = pygame.display.set_mode((self.fullscreen_w, self.fullscreen_h), pygame.FULLSCREEN)
+                        else:
+                            self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+                        self.current_w, self.current_h = pygame.display.get_surface().get_size()
 
             self.all_sprites.update(dt)
 
             self.screen.fill((50, 50, 50))
             self.all_sprites.draw(self.player.rect.center)
 
+            if self.fullscreen:
+                scaled_surface = pygame.transform.scale(self.game_surface, (self.scaled_w, self.scaled_h))
+                self.screen.blit(scaled_surface, (0, 0))
+            else:
+                self.screen.blit(self.game_surface, (0, 0))
+            
             pygame.display.update()
 
 
